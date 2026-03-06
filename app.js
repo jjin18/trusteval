@@ -112,6 +112,7 @@ let running = false;
 let runHistory = [];
 const MAX_SEQUENCE_HISTORY = 10;
 const SEQUENCE_HISTORY_KEY = 'trusteval_recent_sequences';
+const RESULTS_STORAGE_KEY = 'trusteval_recent_results';
 let sequenceHistory = [];
 
 function loadSequenceHistoryFromStorage() {
@@ -121,12 +122,47 @@ function loadSequenceHistoryFromStorage() {
       const parsed = JSON.parse(raw);
       if (Array.isArray(parsed)) sequenceHistory = parsed.slice(0, MAX_SEQUENCE_HISTORY);
     }
+    const resultsRaw = localStorage.getItem(RESULTS_STORAGE_KEY);
+    if (resultsRaw && sequenceHistory.length) {
+      const resultsMap = JSON.parse(resultsRaw);
+      if (resultsMap && typeof resultsMap === 'object') {
+        for (let i = 0; i < sequenceHistory.length; i++) {
+          const html = resultsMap[String(i)];
+          if (typeof html === 'string' && html.trim()) sequenceHistory[i].resultsHtml = html;
+        }
+      }
+    }
   } catch (_) {}
 }
 
 function persistSequenceHistory() {
   try {
-    localStorage.setItem(SEQUENCE_HISTORY_KEY, JSON.stringify(sequenceHistory));
+    const toSave = sequenceHistory.map(entry => {
+      const { resultsHtml, ...rest } = entry;
+      return rest;
+    });
+    localStorage.setItem(SEQUENCE_HISTORY_KEY, JSON.stringify(toSave));
+    const resultsMap = {};
+    sequenceHistory.forEach((entry, i) => {
+      if (typeof entry.resultsHtml === 'string' && entry.resultsHtml.trim()) resultsMap[String(i)] = entry.resultsHtml;
+    });
+    try {
+      localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(resultsMap));
+    } catch (e) {
+      if (e && e.name === 'QuotaExceededError') {
+        for (let keep = sequenceHistory.length; keep > 0; keep--) {
+          const reduced = {};
+          for (let i = 0; i < keep; i++) {
+            if (typeof sequenceHistory[i].resultsHtml === 'string' && sequenceHistory[i].resultsHtml.trim())
+              reduced[String(i)] = sequenceHistory[i].resultsHtml;
+          }
+          try {
+            localStorage.setItem(RESULTS_STORAGE_KEY, JSON.stringify(reduced));
+            break;
+          } catch (_) {}
+        }
+      }
+    }
   } catch (_) {}
 }
 
@@ -216,12 +252,17 @@ function saveCurrentToHistory() {
   const rb = document.getElementById('right-body');
   const hasResults = rb && rb.querySelector('#rc');
   const snapshot = {
-    turns: turns.map(t => ({ type: t.type, text: t.text, rubric: t.rubric || '' })),
+    turns: turns.map(t => ({
+      type: t.type,
+      text: t.text,
+      rubric: t.rubric || '',
+      ...(t.cachedResponse ? { cachedResponse: t.cachedResponse } : {}),
+    })),
     ctx,
     label: turns[0] && turns[0].text ? turns[0].text.trim().slice(0, 50) + (turns[0].text.trim().length > 50 ? '…' : '') : 'Sequence',
     turnCount: turns.length,
   };
-  if (hasResults) snapshot.resultsHtml = rb.innerHTML;
+  if (hasResults && rb) snapshot.resultsHtml = rb.innerHTML;
   sequenceHistory.unshift(snapshot);
   if (sequenceHistory.length > MAX_SEQUENCE_HISTORY) sequenceHistory.length = MAX_SEQUENCE_HISTORY;
   persistSequenceHistory();
@@ -229,18 +270,58 @@ function saveCurrentToHistory() {
 
 const EMPTY_STATE_HTML = `<div class="empty-state">
   <div class="empty-heading">Sequential trust<br>evaluation<br><em>for health AI.</em></div>
+  <div class="empty-grid">
+    <div class="eg-item">
+      <div class="eg-num">01</div>
+      <div class="eg-text">Write a patient prompt. Tag each follow-up as baseline, minimize, assert, or deflect.</div>
+    </div>
+    <div class="eg-item">
+      <div class="eg-num">02</div>
+      <div class="eg-text">Add a rubric per turn — what correct model behavior looks like before the run starts.</div>
+    </div>
+    <div class="eg-item">
+      <div class="eg-num">03</div>
+      <div class="eg-text">The tool runs the full conversation and checks whether each pressure turn caused position drift.</div>
+    </div>
+    <div class="eg-item">
+      <div class="eg-num">04</div>
+      <div class="eg-text">Failures surface with quoted evidence and a clinical-info check — social vs. clinical pressure.</div>
+    </div>
+  </div>
 </div>`;
+
+function resetResultsPanel() {
+  const rb = document.getElementById('right-body');
+  const runIdLabel = document.getElementById('run-id-label');
+  if (rb) rb.innerHTML = EMPTY_STATE_HTML;
+  if (runIdLabel) runIdLabel.textContent = '';
+}
 
 function restoreSequence(index) {
   const entry = sequenceHistory[index];
   if (!entry || !entry.turns) return;
-  turns = entry.turns.map(t => ({ type: t.type, text: t.text, rubric: t.rubric || '' }));
+  const savedResultsHtml = typeof entry.resultsHtml === 'string' && entry.resultsHtml.trim().length > 0
+    ? entry.resultsHtml
+    : null;
+  turns = entry.turns.map(t => ({
+    type: t.type,
+    text: t.text,
+    rubric: t.rubric || '',
+    ...(t.cachedResponse ? { cachedResponse: t.cachedResponse } : {}),
+  }));
   const ctxEl = document.getElementById('ctx-input');
   if (ctxEl) ctxEl.value = entry.ctx || '';
   renderTurns();
   hideModal();
   const rb = document.getElementById('right-body');
-  if (rb) rb.innerHTML = entry.resultsHtml || EMPTY_STATE_HTML;
+  if (rb) {
+    const htmlToShow = savedResultsHtml || EMPTY_STATE_HTML;
+    rb.innerHTML = htmlToShow;
+    requestAnimationFrame(() => {
+      const el = document.getElementById('right-body');
+      if (el) el.innerHTML = htmlToShow;
+    });
+  }
 }
 
 function clearAll() {
@@ -259,11 +340,17 @@ addTurn('baseline', '');
 // PRESETS
 // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-let currentModalTab = 'presets';
+let currentModalTab = 'recent';
 
 function renderModalBody(tab) {
   const body = document.getElementById('modal-body');
+  const titleEl = document.getElementById('modal-title');
   if (!body) return;
+  currentModalTab = tab;
+  if (titleEl) titleEl.textContent = tab === 'presets' ? 'Presets' : 'Recently edited';
+  const switchLink = tab === 'presets'
+    ? '<div class="modal-switch"><button type="button" class="btn-ghost" onclick="showModal(\'recent\')">Recently edited</button></div>'
+    : '<div class="modal-switch"><button type="button" class="btn-ghost" onclick="showModal(\'presets\')">Presets</button></div>';
   if (tab === 'presets') {
     const presetsHtml = PRESETS.map(p => `
       <div class="preset-item" onclick="loadPreset('${p.id}')">
@@ -271,7 +358,7 @@ function renderModalBody(tab) {
         <span class="pi-name">${p.name}</span>
         <span class="pi-risk ${p.risk}">${p.risk}</span>
       </div>`).join('');
-    body.innerHTML = `<div class="modal-section-label">Preset sequences</div>${presetsHtml}`;
+    body.innerHTML = `<div class="modal-section-label">Preset sequences</div>${presetsHtml}${switchLink}`;
   } else {
     const recentListHtml = sequenceHistory.length === 0
       ? '<div class="recent-empty">No recent sequences yet. Edit a sequence, then load a preset or clear to add it here.</div>'
@@ -281,23 +368,12 @@ function renderModalBody(tab) {
           <span class="pi-name" title="${(entry.label || '').replace(/"/g, '&quot;')}">${entry.label || 'Sequence'}</span>
           <span class="pi-recent">recent</span>
         </div>`).join('');
-    body.innerHTML = `<div class="modal-section-label">Click to restore &amp; edit</div><div id="recent-sequences-list">${recentListHtml}</div>`;
+    body.innerHTML = `<div class="modal-section-label">Click to restore &amp; edit</div><div id="recent-sequences-list">${recentListHtml}</div>${switchLink}`;
   }
 }
 
-function switchModalTab(tab) {
-  currentModalTab = tab;
-  document.querySelectorAll('.modal-tab').forEach(el => el.classList.remove('active'));
-  const tabEl = document.getElementById('modal-tab-' + tab);
-  if (tabEl) tabEl.classList.add('active');
-  renderModalBody(tab);
-}
-
 function showModal(tab) {
-  currentModalTab = tab || 'presets';
-  document.querySelectorAll('.modal-tab').forEach(el => el.classList.remove('active'));
-  const tabEl = document.getElementById('modal-tab-' + currentModalTab);
-  if (tabEl) tabEl.classList.add('active');
+  currentModalTab = tab || 'recent';
   renderModalBody(currentModalTab);
   document.getElementById('modal-bg').classList.add('open');
 }

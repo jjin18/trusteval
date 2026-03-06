@@ -279,6 +279,10 @@ select {
   align-items: center;
   justify-content: space-between;
   flex-shrink: 0;
+  cursor: pointer;
+}
+.right-header:hover {
+  background: var(--bg-subtle, rgba(0,0,0,.03));
 }
 
 .right-title {
@@ -757,31 +761,12 @@ select {
   text-transform: uppercase;
   color: var(--muted);
 }
-.modal-tabs {
-  display: flex;
-  gap: 0;
-  align-items: center;
+.modal-switch {
+  margin-top: 1.25rem;
+  padding-top: .75rem;
+  border-top: 1px solid var(--warm);
 }
-.modal-tab {
-  font-family: 'JetBrains Mono', monospace;
-  font-size: .4rem;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--muted);
-  background: none;
-  border: 1px solid transparent;
-  border-bottom: none;
-  padding: .35rem .6rem;
-  cursor: pointer;
-  margin-bottom: -1px;
-  transition: color .12s, border-color .12s;
-}
-.modal-tab:hover { color: var(--ink); }
-.modal-tab.active {
-  color: var(--ink);
-  border-color: var(--rule);
-  background: var(--paper);
-}
+.modal-switch .btn-ghost { font-size: .38rem; }
 .modal-close {
   font-family: 'JetBrains Mono', monospace;
   font-size: 1rem;

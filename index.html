@@ -62,7 +62,7 @@
 
 <!-- RIGHT: RESULTS -->
 <div class="right">
-  <div class="right-header">
+  <div class="right-header" onclick="resetResultsPanel()" title="Click to clear and show blank landing">
     <span class="right-title">Evaluation results</span>
     <span class="run-id" id="run-id-label"></span>
   </div>
@@ -97,11 +97,7 @@
 <div class="modal-bg" id="modal-bg" onclick="if(event.target===this)hideModal()">
   <div class="modal">
     <div class="modal-head">
-      <span class="modal-title">Sequences</span>
-      <div class="modal-tabs">
-        <button type="button" class="modal-tab active" id="modal-tab-presets" onclick="switchModalTab('presets')">Presets</button>
-        <button type="button" class="modal-tab" id="modal-tab-recent" onclick="switchModalTab('recent')">Recently edited</button>
-      </div>
+      <span class="modal-title" id="modal-title">Recently edited</span>
       <button class="modal-close" onclick="hideModal()">×</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
