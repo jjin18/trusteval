@@ -246,6 +246,16 @@ function checkReady() {
   document.getElementById('run-btn').disabled = !ok;
 }
 
+function sameSequenceContent(a, b) {
+  if (!a || !b || !a.turns || !b.turns) return false;
+  if (a.turns.length !== b.turns.length) return false;
+  if ((a.ctx || '').trim() !== (b.ctx || '').trim()) return false;
+  return a.turns.every((t, i) => {
+    const u = b.turns[i];
+    return u && t.type === u.type && (t.text || '').trim() === (u.text || '').trim() && (t.rubric || '').trim() === (u.rubric || '').trim();
+  });
+}
+
 function saveCurrentToHistory() {
   if (turns.length === 0 || !turns.some(t => t.text && t.text.trim())) return;
   const ctx = (document.getElementById('ctx-input') && document.getElementById('ctx-input').value) || '';
@@ -262,8 +272,33 @@ function saveCurrentToHistory() {
     label: turns[0] && turns[0].text ? turns[0].text.trim().slice(0, 50) + (turns[0].text.trim().length > 50 ? '…' : '') : 'Sequence',
     turnCount: turns.length,
   };
-  if (hasResults && rb) snapshot.resultsHtml = rb.innerHTML;
-  sequenceHistory.unshift(snapshot);
+  if (hasResults && rb) {
+    snapshot.resultsHtml = rb.innerHTML;
+    const runIdEl = document.getElementById('run-id-label');
+    if (runIdEl && runIdEl.textContent && runIdEl.textContent.trim()) snapshot.runId = runIdEl.textContent.trim();
+    const rc = rb.querySelector('#rc');
+    if (rc) {
+      const scoreEl = rc.querySelector('.vb-score-num');
+      const modelLine = rc.querySelector('.vb-model');
+      const ctScores = rc.querySelectorAll('.ct-score');
+      snapshot.resultsSummary = {};
+      if (scoreEl && scoreEl.textContent.trim()) snapshot.resultsSummary.avgScore = scoreEl.textContent.trim();
+      if (modelLine && modelLine.textContent.trim()) snapshot.resultsSummary.modelLine = modelLine.textContent.trim();
+      if (ctScores.length) snapshot.resultsSummary.crossScores = Array.from(ctScores).map(el => el.textContent.trim());
+    }
+  }
+  const existingIndex = sequenceHistory.findIndex(entry => sameSequenceContent(entry, snapshot));
+  if (existingIndex >= 0) {
+    const existing = sequenceHistory[existingIndex];
+    sequenceHistory.splice(existingIndex, 1);
+    const merged = { ...existing, ...snapshot };
+    if (snapshot.resultsHtml) merged.resultsHtml = snapshot.resultsHtml;
+    if (snapshot.runId) merged.runId = snapshot.runId;
+    if (snapshot.resultsSummary) merged.resultsSummary = snapshot.resultsSummary;
+    sequenceHistory.unshift(merged);
+  } else {
+    sequenceHistory.unshift(snapshot);
+  }
   if (sequenceHistory.length > MAX_SEQUENCE_HISTORY) sequenceHistory.length = MAX_SEQUENCE_HISTORY;
   persistSequenceHistory();
 }
@@ -315,13 +350,29 @@ function restoreSequence(index) {
   hideModal();
   const rb = document.getElementById('right-body');
   if (rb) {
-    const htmlToShow = savedResultsHtml || EMPTY_STATE_HTML;
-    rb.innerHTML = htmlToShow;
-    requestAnimationFrame(() => {
-      const el = document.getElementById('right-body');
-      if (el) el.innerHTML = htmlToShow;
-    });
+    rb.innerHTML = savedResultsHtml || EMPTY_STATE_HTML;
+    if (entry.resultsSummary && savedResultsHtml) {
+      const rc = rb.querySelector('#rc');
+      if (rc) {
+        if (entry.resultsSummary.avgScore) {
+          const scoreEl = rc.querySelector('.vb-score-num');
+          if (scoreEl) scoreEl.textContent = entry.resultsSummary.avgScore;
+        }
+        if (entry.resultsSummary.modelLine) {
+          const modelEl = rc.querySelector('.vb-model');
+          if (modelEl) modelEl.textContent = entry.resultsSummary.modelLine;
+        }
+        if (entry.resultsSummary.crossScores && entry.resultsSummary.crossScores.length) {
+          const ctScores = rc.querySelectorAll('.ct-score');
+          entry.resultsSummary.crossScores.forEach((score, i) => {
+            if (ctScores[i]) ctScores[i].textContent = score;
+          });
+        }
+      }
+    }
   }
+  const runIdLabel = document.getElementById('run-id-label');
+  if (runIdLabel) runIdLabel.textContent = entry.runId || '';
 }
 
 function clearAll() {
@@ -373,7 +424,9 @@ function renderModalBody(tab) {
 }
 
 function showModal(tab) {
+  saveCurrentToHistory();
   currentModalTab = tab || 'recent';
+  if (currentModalTab === 'recent') loadSequenceHistoryFromStorage();
   renderModalBody(currentModalTab);
   document.getElementById('modal-bg').classList.add('open');
 }
