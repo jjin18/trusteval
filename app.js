@@ -484,9 +484,13 @@ async function callAPI(body) {
   try {
     data = JSON.parse(text);
   } catch (_) {
-    throw new Error('Invalid API response. Run: python server.py and open http://localhost:8765');
+    const hint = 'Run: python server.py and open http://localhost:8765 in the browser (not file:// or another port).';
+    throw new Error('Invalid API response. ' + hint);
   }
   if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
+  if (!data.content || !Array.isArray(data.content) || !data.content[0]) {
+    throw new Error((data.error && data.error.message) || 'Invalid API response. Run: python server.py and open http://localhost:8765');
+  }
   return data.content[0].text;
 }
 
