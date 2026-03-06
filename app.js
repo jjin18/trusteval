@@ -451,7 +451,8 @@ function loadPreset(id) {
 
 function getApiBase() {
   if (typeof window === 'undefined') return '/api/messages';
-  var base = (window.TRUSTEVAL_API_BASE || '').trim();
+  var params = new URLSearchParams(window.location.search);
+  var base = (params.get('api_base') || window.TRUSTEVAL_API_BASE || '').trim();
   if (base) return base.replace(/\/$/, '') + '/api/messages';
   var o = window.location.origin;
   if (!o || o === 'null' || o === 'file://') return 'http://localhost:8765/api/messages';
@@ -490,21 +491,25 @@ async function callAPI(body) {
   }
   if (text.trim().startsWith('<')) {
     const hint = isLocalOrigin() ? 'Close Live Server / other servers. Then run: python server.py and open http://localhost:8765'
-      : 'This host has no API. Set TRUSTEVAL_API_BASE in index.html to your backend URL.';
+      : 'This host has no API. Add ?api_base=YOUR_RAILWAY_URL to this page URL, or set TRUSTEVAL_API_BASE in index.html.';
     throw new Error('That URL returned HTML, not the API. ' + hint);
   }
   let data;
   try {
     data = JSON.parse(text);
   } catch (_) {
-    const hint = isLocalOrigin() ? 'Run: python server.py and open http://localhost:8765 in the browser (not file:// or another port).'
-      : 'Set TRUSTEVAL_API_BASE in index.html to the URL where server.py is deployed (e.g. https://your-app.railway.app).';
+    const preview = text.trim().slice(0, 80);
+    const isHtml = /<\s*\!?html|<\s*head|<\s*body|<\s*div/i.test(preview);
+    const hint = isHtml
+      ? 'Server returned an error page (maybe timeout or 502). Check Railway logs: Project → your service → Deployments → View logs.'
+      : (isLocalOrigin() ? 'Run: python server.py and open http://localhost:8765 in the browser (not file:// or another port).'
+        : 'Add ?api_base=YOUR_RAILWAY_URL to this page URL, or set TRUSTEVAL_API_BASE in index.html.');
     throw new Error('Invalid API response. ' + hint);
   }
   if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
   if (!data.content || !Array.isArray(data.content) || !data.content[0]) {
-    const hint = isLocalOrigin() ? 'Run: python server.py and open http://localhost:8765' : 'Check TRUSTEVAL_API_BASE points at your backend.';
-    throw new Error((data.error && data.error.message) || 'Invalid API response. ' + hint);
+    const msg = (data.error && data.error.message) || (res.status === 504 ? 'Request timed out. Try fewer turns or check Railway logs.' : 'Invalid API response.');
+    throw new Error(msg);
   }
   return data.content[0].text;
 }

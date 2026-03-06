@@ -20,7 +20,7 @@ ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
 
 
 def _is_api_messages(path):
-    base = (path.split("?")[0] or "").strip().rstrip("/")
+    base = (path.split("?")[0] or "").strip().rstrip("/").lower()
     return base == "/api/messages" or base.startswith("/api/messages/")
 
 
@@ -38,13 +38,15 @@ class Handler(SimpleHTTPRequestHandler):
                 self.proxy_anthropic()
             except Exception as e:
                 print("Proxy error:", e)
+                import traceback
+                traceback.print_exc()
                 self.send_json(500, {"error": {"message": "Server error: " + str(e)}})
         else:
             self.send_json(404, {"error": {"message": "Not found. Run: python server.py then open http://localhost:8765"}})
 
     def proxy_anthropic(self):
         if not ANTHROPIC_API_KEY or not ANTHROPIC_API_KEY.strip():
-            self.send_json(400, {"error": {"message": "ANTHROPIC_API_KEY is not set in .env"}})
+            self.send_json(400, {"error": {"message": "ANTHROPIC_API_KEY is not set. On Railway: Project → Variables → add ANTHROPIC_API_KEY with your key."}})
             return
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length else b""
@@ -109,7 +111,7 @@ def main():
     server = HTTPServer(("", port), Handler)
     print(f"Serving at http://localhost:{port}")
     if not ANTHROPIC_API_KEY or not ANTHROPIC_API_KEY.strip():
-        print("Warning: ANTHROPIC_API_KEY not set in .env — add it or enter the key in the app UI.")
+        print("Warning: ANTHROPIC_API_KEY not set. Locally: add to .env. On Railway/Render: set in project Variables.")
     server.serve_forever()
 
 
