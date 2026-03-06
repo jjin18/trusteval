@@ -67,7 +67,7 @@ body {
   font-family: 'JetBrains Mono', monospace;
   font-size: .4rem;
   letter-spacing: .08em;
-  color: var(--rule);
+  color: var(--muted);
   font-weight: 300;
   line-height: 1;
 }
