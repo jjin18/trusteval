@@ -19,12 +19,12 @@ body {
   background: var(--paper);
   color: var(--ink);
   -webkit-font-smoothing: antialiased;
-  font-size: 16px;
+  font-size: 22px;
   line-height: 1.5;
 }
 
 /* APP SHELL */
-.app { display: grid; grid-template-columns: 400px 1fr; height: 100vh; }
+.app { display: grid; grid-template-columns: 360px 1fr; height: 100vh; }
 
 /* Ã¢â€â‚¬Ã¢â€â‚¬ LEFT PANEL Ã¢â€â‚¬Ã¢â€â‚¬ */
 .left {
@@ -48,7 +48,7 @@ body {
 
 .wordmark {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .48rem;
+  font-size: .58rem;
   letter-spacing: .22em;
   text-transform: uppercase;
   color: var(--ink);
@@ -65,7 +65,7 @@ body {
 }
 .app-credit {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .3rem;
+  font-size: .4rem;
   letter-spacing: .08em;
   color: var(--rule);
   font-weight: 300;
@@ -76,7 +76,7 @@ body {
 
 .btn-ghost {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .42rem;
+  font-size: .5rem;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--muted);
@@ -111,7 +111,7 @@ body {
 .left-scroll > #turns-list { flex-shrink: 1; min-height: 0; }
 .left-helper {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .38rem;
+  font-size: .5rem;
   color: var(--muted);
   letter-spacing: .04em;
   line-height: 1.8;
@@ -121,7 +121,7 @@ body {
 /* Ã¢â€â‚¬Ã¢â€â‚¬ SECTION LABEL Ã¢â€â‚¬Ã¢â€â‚¬ */
 .s-label {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .38rem;
+  font-size: .5rem;
   letter-spacing: .16em;
   text-transform: uppercase;
   color: var(--muted);
@@ -374,7 +374,7 @@ select {
 .empty-state .eg-item { text-align: left; }
 
 .empty-heading {
-  font-size: clamp(2rem, 3.5vw, 3rem);
+  font-size: clamp(2.5rem, 4.5vw, 3.75rem);
   font-weight: 400;
   line-height: 1.05;
   letter-spacing: -.025em;
@@ -392,14 +392,14 @@ select {
 .eg-item { }
 .eg-num {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .38rem;
+  font-size: .48rem;
   color: var(--muted);
   letter-spacing: .12em;
   margin-bottom: .2rem;
 }
 .eg-text {
   font-family: 'JetBrains Mono', monospace;
-  font-size: .5rem;
+  font-size: .62rem;
   color: var(--muted);
   font-weight: 500;
   line-height: 1.65;
