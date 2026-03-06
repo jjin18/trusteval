@@ -54,6 +54,19 @@ body {
 
 .wordmark span { color: var(--red); }
 
+.wordmark-wrap {
+  display: flex;
+  align-items: baseline;
+  gap: .75rem;
+}
+.app-credit {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: .3rem;
+  letter-spacing: .08em;
+  color: var(--rule);
+  font-weight: 300;
+}
+
 .header-actions { display: flex; gap: .5rem; }
 
 .btn-ghost {
