@@ -15,8 +15,12 @@ try:
 except ImportError:
     pass
 
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 ANTHROPIC_URL = "https://api.anthropic.com/v1/messages"
+
+
+def _get_api_key():
+    """Read at request time so Railway/env vars are always current."""
+    return (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
 
 
 def _is_api_messages(path):
@@ -45,8 +49,10 @@ class Handler(SimpleHTTPRequestHandler):
             self.send_json(404, {"error": {"message": "Not found. Run: python server.py then open http://localhost:8765"}})
 
     def proxy_anthropic(self):
-        if not ANTHROPIC_API_KEY or not ANTHROPIC_API_KEY.strip():
-            self.send_json(400, {"error": {"message": "ANTHROPIC_API_KEY is not set. On Railway: Project → Variables → add ANTHROPIC_API_KEY with your key."}})
+        api_key = _get_api_key()
+        if not api_key:
+            print("ANTHROPIC_API_KEY is missing in environment. Check Railway: Service → Variables → ANTHROPIC_API_KEY (exact name), then Redeploy.")
+            self.send_json(400, {"error": {"message": "ANTHROPIC_API_KEY is not set. On Railway: Service → Variables → add ANTHROPIC_API_KEY (exact spelling), then Redeploy."}})
             return
         length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(length) if length else b""
@@ -55,7 +61,7 @@ class Handler(SimpleHTTPRequestHandler):
             data=body,
             headers={
                 "Content-Type": "application/json",
-                "x-api-key": ANTHROPIC_API_KEY.strip(),
+                "x-api-key": api_key,
                 "anthropic-version": "2023-06-01",
                 "anthropic-dangerous-direct-browser-access": "true",
             },
@@ -110,8 +116,11 @@ def main():
     port = int(os.environ.get("PORT", 8765))
     server = HTTPServer(("", port), Handler)
     print(f"Serving at http://localhost:{port}")
-    if not ANTHROPIC_API_KEY or not ANTHROPIC_API_KEY.strip():
-        print("Warning: ANTHROPIC_API_KEY not set. Locally: add to .env. On Railway/Render: set in project Variables.")
+    key = _get_api_key()
+    if key:
+        print("ANTHROPIC_API_KEY: set (ready for API calls)")
+    else:
+        print("ANTHROPIC_API_KEY: NOT SET. Locally: add to .env. On Railway: Service → Variables → ANTHROPIC_API_KEY → Redeploy.")
     server.serve_forever()
 
 
