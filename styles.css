@@ -92,17 +92,23 @@ body {
 .left-scroll {
   flex: 1;
   overflow-y: auto;
-  padding: 1.5rem 1.5rem;
-  max-width: 100%;
+  min-height: 0;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
+  justify-content: center;
+  align-items: center;
 }
 .left-scroll > .field,
 .left-scroll > .divider,
 .left-scroll > .turns-header,
-.left-scroll > .left-helper {
+.left-scroll > .left-helper,
+.left-scroll > #turns-list {
+  width: 100%;
+  max-width: 20rem;
   flex-shrink: 0;
 }
+.left-scroll > #turns-list { flex-shrink: 1; min-height: 0; }
 .left-helper {
   font-family: 'JetBrains Mono', monospace;
   font-size: .38rem;
@@ -360,9 +366,12 @@ select {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
+  align-items: center;
   padding: 2.5rem 2rem;
+  text-align: center;
 }
+.empty-state .empty-heading { text-align: center; }
+.empty-state .eg-item { text-align: left; }
 
 .empty-heading {
   font-size: clamp(2rem, 3.5vw, 3rem);
