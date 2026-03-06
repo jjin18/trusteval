@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TrustEval — Sequential Health AI Evaluation</title>
+  <link href="https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="app">
+
+<!-- LEFT: BUILD -->
+<div class="left">
+  <div class="panel-header">
+    <span class="wordmark">Trust<span>Eval</span></span>
+    <div class="header-actions">
+      <button class="btn-ghost" onclick="showModal('presets')">presets</button>
+      <button class="btn-ghost" onclick="showModal('recent')">recent</button>
+      <button class="btn-ghost" onclick="clearAll()">clear</button>
+    </div>
+  </div>
+
+  <div class="left-scroll">
+    <div class="field">
+      <span class="s-label">Model under evaluation</span>
+      <select id="sel-model">
+        <option value="claude-haiku-4-5-20251001">Claude Haiku 4.5</option>
+        <option value="claude-sonnet-4-20250514">Claude Sonnet 4</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <span class="s-label">Clinical context <span style="color:var(--rule);font-size:.85em">optional — injected as system prompt</span></span>
+      <input type="text" id="ctx-input" placeholder="e.g. no prior cardiac history, patient is 52F" />
+    </div>
+
+    <hr class="divider">
+
+    <div class="turns-header">
+      <span class="s-label" style="margin:0">Turn sequence</span>
+      <button class="btn-add-turn" onclick="addTurn()">+ add turn</button>
+    </div>
+
+    <div style="font-family:'JetBrains Mono',monospace;font-size:.38rem;color:var(--rule);letter-spacing:.04em;line-height:1.8;margin-bottom:.85rem">
+      Baseline = opening patient message.<br>
+      Pressure turns simulate pushback after model responds — minimize, assert, or deflect.<br>
+      Rubric = what correct model behavior looks like on this specific turn.<br>
+      <span style="color:var(--muted)">Runs like a chat: prior turns stay fixed and provide context for the next.</span>
+    </div>
+
+    <div id="turns-list"></div>
+  </div>
+
+  <div class="left-footer">
+    <button class="btn-run" id="run-btn" onclick="runEval()" disabled>
+      <span id="run-spinner" class="run-spinner"></span>
+      <span id="run-label">Run eval</span>
+    </button>
+  </div>
+</div>
+
+<!-- RIGHT: RESULTS -->
+<div class="right">
+  <div class="right-header">
+    <span class="right-title">Evaluation results</span>
+    <span class="run-id" id="run-id-label"></span>
+  </div>
+  <div class="right-body" id="right-body">
+    <div class="empty-state">
+      <div class="empty-heading">Sequential trust<br>evaluation<br><em>for health AI.</em></div>
+      <div class="empty-grid">
+        <div class="eg-item">
+          <div class="eg-num">01</div>
+          <div class="eg-text">Write a patient prompt. Tag each follow-up as baseline, minimize, assert, or deflect.</div>
+        </div>
+        <div class="eg-item">
+          <div class="eg-num">02</div>
+          <div class="eg-text">Add a rubric per turn — what correct model behavior looks like before the run starts.</div>
+        </div>
+        <div class="eg-item">
+          <div class="eg-num">03</div>
+          <div class="eg-text">The tool runs the full conversation and checks whether each pressure turn caused position drift.</div>
+        </div>
+        <div class="eg-item">
+          <div class="eg-num">04</div>
+          <div class="eg-text">Failures surface with quoted evidence and a clinical-info check — social vs. clinical pressure.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<!-- PRESETS / RECENT MODAL -->
+<div class="modal-bg" id="modal-bg" onclick="if(event.target===this)hideModal()">
+  <div class="modal">
+    <div class="modal-head">
+      <span class="modal-title">Sequences</span>
+      <div class="modal-tabs">
+        <button type="button" class="modal-tab active" id="modal-tab-presets" onclick="switchModalTab('presets')">Presets</button>
+        <button type="button" class="modal-tab" id="modal-tab-recent" onclick="switchModalTab('recent')">Recently edited</button>
+      </div>
+      <button class="modal-close" onclick="hideModal()">×</button>
+    </div>
+    <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<script src="app.js"></script>
+</body>
+</html>
