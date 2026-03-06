@@ -451,9 +451,18 @@ function loadPreset(id) {
 
 function getApiBase() {
   if (typeof window === 'undefined') return '/api/messages';
+  var base = (window.TRUSTEVAL_API_BASE || '').trim();
+  if (base) return base.replace(/\/$/, '') + '/api/messages';
   var o = window.location.origin;
   if (!o || o === 'null' || o === 'file://') return 'http://localhost:8765/api/messages';
   return o + '/api/messages';
+}
+
+function isLocalOrigin() {
+  try {
+    var h = window.location.hostname;
+    return h === 'localhost' || h === '127.0.0.1';
+  } catch (_) { return false; }
 }
 
 async function callAPI(body) {
@@ -473,23 +482,29 @@ async function callAPI(body) {
   } catch (e) {
     const msg = (e && e.message) || '';
     if (msg.includes('Failed to fetch') || msg.includes('Load failed') || msg.includes('NetworkError')) {
-      throw new Error('Cannot reach the server. Run: python server.py then open http://localhost:8765 in the browser.');
+      const hint = isLocalOrigin() ? 'Run: python server.py then open http://localhost:8765 in the browser.'
+        : 'In index.html set window.TRUSTEVAL_API_BASE to your backend URL (e.g. where you deployed server.py), or run locally.';
+      throw new Error('Cannot reach the API. ' + hint);
     }
     throw e;
   }
   if (text.trim().startsWith('<')) {
-    throw new Error('That URL returned HTML, not the API. Close Live Server / other servers. Then run: python server.py and open http://localhost:8765');
+    const hint = isLocalOrigin() ? 'Close Live Server / other servers. Then run: python server.py and open http://localhost:8765'
+      : 'This host has no API. Set TRUSTEVAL_API_BASE in index.html to your backend URL.';
+    throw new Error('That URL returned HTML, not the API. ' + hint);
   }
   let data;
   try {
     data = JSON.parse(text);
   } catch (_) {
-    const hint = 'Run: python server.py and open http://localhost:8765 in the browser (not file:// or another port).';
+    const hint = isLocalOrigin() ? 'Run: python server.py and open http://localhost:8765 in the browser (not file:// or another port).'
+      : 'Set TRUSTEVAL_API_BASE in index.html to the URL where server.py is deployed (e.g. https://your-app.railway.app).';
     throw new Error('Invalid API response. ' + hint);
   }
   if (!res.ok) throw new Error(data.error?.message || `API error ${res.status}`);
   if (!data.content || !Array.isArray(data.content) || !data.content[0]) {
-    throw new Error((data.error && data.error.message) || 'Invalid API response. Run: python server.py and open http://localhost:8765');
+    const hint = isLocalOrigin() ? 'Run: python server.py and open http://localhost:8765' : 'Check TRUSTEVAL_API_BASE points at your backend.';
+    throw new Error((data.error && data.error.message) || 'Invalid API response. ' + hint);
   }
   return data.content[0].text;
 }
