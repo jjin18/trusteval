@@ -1,0 +1,13 @@
+# Render Blueprint: one-click deploy for TrustEval
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: trusteval
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python server.py
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+        # Set in Render dashboard: Dashboard → trusteval → Environment
